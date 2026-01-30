@@ -11,7 +11,7 @@ const updateStaffSchema = z.object({
 // GET: Get single staff member (Admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ staffId: string }> }
+  { params }: { params: { staffId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { staffId } = await params;
+    const { staffId } = params;
 
     const staff = await prisma.user.findUnique({
       where: { id: staffId, role: "STAFF" },
@@ -54,7 +54,7 @@ export async function GET(
 // PATCH: Update staff member (Admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ staffId: string }> }
+  { params }: { params: { staffId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -62,7 +62,7 @@ export async function PATCH(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { staffId } = await params;
+    const { staffId } = params;
     const body = await request.json();
     const parsed = updateStaffSchema.safeParse(body);
 
@@ -118,7 +118,7 @@ export async function PATCH(
 // DELETE: Delete staff member (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ staffId: string }> }
+  { params }: { params: { staffId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -126,7 +126,7 @@ export async function DELETE(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { staffId } = await params;
+    const { staffId } = params;
 
     const existing = await prisma.user.findUnique({
       where: { id: staffId, role: "STAFF" },

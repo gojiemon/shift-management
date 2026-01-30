@@ -17,7 +17,7 @@ const updateAssignmentSchema = z.object({
 // PATCH: Update assignment (Admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
+  { params }: { params: { assignmentId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -25,7 +25,7 @@ export async function PATCH(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { assignmentId } = await params;
+    const { assignmentId } = params;
     const body = await request.json();
     const parsed = updateAssignmentSchema.safeParse(body);
 
@@ -144,7 +144,7 @@ export async function PATCH(
 // DELETE: Delete assignment (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
+  { params }: { params: { assignmentId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -152,7 +152,7 @@ export async function DELETE(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { assignmentId } = await params;
+    const { assignmentId } = params;
 
     await prisma.shiftAssignment.delete({
       where: { id: assignmentId },

@@ -14,7 +14,7 @@ const updatePeriodSchema = z.object({
 // GET: Get single period
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ periodId: string }> }
+  { params }: { params: { periodId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -22,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    const { periodId } = await params;
+    const { periodId } = params;
 
     const period = await prisma.shiftPeriod.findUnique({
       where: { id: periodId },
@@ -48,7 +48,7 @@ export async function GET(
 // PATCH: Update period (Admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ periodId: string }> }
+  { params }: { params: { periodId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -56,7 +56,7 @@ export async function PATCH(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { periodId } = await params;
+    const { periodId } = params;
     const body = await request.json();
     const parsed = updatePeriodSchema.safeParse(body);
 
@@ -106,7 +106,7 @@ export async function PATCH(
 // DELETE: Delete period (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ periodId: string }> }
+  { params }: { params: { periodId: string } }
 ) {
   try {
     const user = await getCurrentUser();
@@ -114,7 +114,7 @@ export async function DELETE(
       return NextResponse.json({ error: "権限がありません" }, { status: 403 });
     }
 
-    const { periodId } = await params;
+    const { periodId } = params;
 
     await prisma.shiftPeriod.delete({
       where: { id: periodId },
