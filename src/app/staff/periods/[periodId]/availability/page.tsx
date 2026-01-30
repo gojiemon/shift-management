@@ -186,10 +186,10 @@ export default function AvailabilityPage() {
     }
   };
 
-  const [successMessage, setSuccessMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successType, setSuccessType] = useState<"submit" | "update">("submit");
 
   const submitAvailability = async () => {
-    setSuccessMessage("");
     await saveAvailability();
     if (error) return;
 
@@ -205,8 +205,9 @@ export default function AvailabilityPage() {
         throw new Error(data.error || "提出に失敗しました");
       }
 
+      setSuccessType(isSubmitted ? "update" : "submit");
       setIsSubmitted(true);
-      setSuccessMessage(isSubmitted ? "更新しました！" : "提出しました！");
+      setShowSuccessModal(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "提出に失敗しました");
     }
@@ -248,9 +249,26 @@ export default function AvailabilityPage() {
         <div className="bg-red-50 text-red-600 p-3 rounded-md">{error}</div>
       )}
 
-      {successMessage && (
-        <div className="bg-green-50 text-green-600 p-3 rounded-md font-medium">
-          {successMessage}
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center shadow-xl">
+            <div className="text-6xl mb-4">✓</div>
+            <h2 className="text-2xl font-bold text-green-600 mb-2">
+              {successType === "submit" ? "提出完了" : "更新完了"}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {successType === "submit"
+                ? "シフト希望を提出しました。ありがとうございます！"
+                : "シフト希望を更新しました。ありがとうございます！"}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="btn btn-primary px-8"
+            >
+              閉じる
+            </button>
+          </div>
         </div>
       )}
 

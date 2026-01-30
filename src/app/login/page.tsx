@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -38,7 +37,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginId, password }),
+        body: JSON.stringify({ loginId }),
       });
 
       const data = await res.json();
@@ -91,21 +90,6 @@ export default function LoginPage() {
               required
               autoComplete="username"
               autoFocus
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="label">
-              パスワード
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-              required
-              autoComplete="current-password"
             />
           </div>
 
