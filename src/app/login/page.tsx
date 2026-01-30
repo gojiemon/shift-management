@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        const res = await fetch("/api/setup");
+        const data = await res.json();
+        if (data.setupRequired) {
+          router.push("/setup");
+          return;
+        }
+      } catch {
+        // Ignore error
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkSetup();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +38,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginId }),
+        body: JSON.stringify({ loginId, password }),
       });
 
       const data = await res.json();
@@ -41,6 +61,10 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (checking) {
+    return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -67,6 +91,21 @@ export default function LoginPage() {
               required
               autoComplete="username"
               autoFocus
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="label">
+              パスワード
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input"
+              required
+              autoComplete="current-password"
             />
           </div>
 
