@@ -218,7 +218,7 @@ export default function AdminPrintDailyPage() {
                         <td
                           colSpan={HOURS.length}
                           className="border border-gray-400 p-0 relative"
-                          style={{ height: "20px" }}
+                          style={{ height: "17px" }}
                         >
                           {/* Grid lines */}
                           <div className="absolute inset-0 flex">
