@@ -235,8 +235,9 @@ export default function AdminPrintDailyPage() {
                             style={{
                               left: `${minToPercent(assignment.startMin)}%`,
                               width: `${minToWidth(assignment.endMin - assignment.startMin)}%`,
-                              top: "1px",
-                              bottom: "1px",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              height: "8px",
                             }}
                           />
                           {/* Break bar */}
@@ -246,8 +247,9 @@ export default function AdminPrintDailyPage() {
                               style={{
                                 left: `${minToPercent(breakStartPos)}%`,
                                 width: `${minToWidth(assignment.breakMin)}%`,
-                                top: "1px",
-                                bottom: "1px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                height: "8px",
                               }}
                             />
                           )}
