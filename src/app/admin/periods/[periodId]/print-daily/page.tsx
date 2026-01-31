@@ -218,7 +218,7 @@ export default function AdminPrintDailyPage() {
                         <td
                           colSpan={HOURS.length}
                           className="border border-gray-400 p-0 relative"
-                          style={{ height: "10px" }}
+                          style={{ height: "20px" }}
                         >
                           {/* Grid lines */}
                           <div className="absolute inset-0 flex">
@@ -237,7 +237,7 @@ export default function AdminPrintDailyPage() {
                               width: `${minToWidth(assignment.endMin - assignment.startMin)}%`,
                               top: "50%",
                               transform: "translateY(-50%)",
-                              height: "8px",
+                              height: "16px",
                             }}
                           />
                           {/* Break bar */}
@@ -249,7 +249,7 @@ export default function AdminPrintDailyPage() {
                                 width: `${minToWidth(assignment.breakMin)}%`,
                                 top: "50%",
                                 transform: "translateY(-50%)",
-                                height: "8px",
+                                height: "16px",
                               }}
                             />
                           )}
