@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
-import { startOfDay, endOfDay, lastDayOfMonth } from "date-fns";
 
 const createPeriodSchema = z.object({
   startDate: z.string(),
@@ -60,8 +59,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const startDate = startOfDay(new Date(parsed.data.startDate));
-    const endDate = endOfDay(new Date(parsed.data.endDate));
+    // タイムゾーン問題を避けるためUTC正午で保存
+    const startDate = new Date(parsed.data.startDate + "T12:00:00Z");
+    const endDate = new Date(parsed.data.endDate + "T12:00:00Z");
     const deadlineAt = parsed.data.deadlineAt
       ? new Date(parsed.data.deadlineAt)
       : null;
