@@ -1,24 +1,53 @@
-import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/auth";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 
-// Always fetch fresh data (no caching)
-export const dynamic = "force-dynamic";
+interface Period {
+  id: string;
+  startDate: string;
+  endDate: string;
+  deadlineAt: string | null;
+  isOpen: boolean;
+  publishedAt: string | null;
+  submissions: { submittedAt: string }[];
+}
 
-export default async function StaffPeriodsPage() {
-  const user = await requireStaff();
+export default function StaffPeriodsPage() {
+  const router = useRouter();
+  const [periods, setPeriods] = useState<Period[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const periods = await prisma.shiftPeriod.findMany({
-    orderBy: { startDate: "desc" },
-    include: {
-      submissions: {
-        where: { staffUserId: user.id },
-        select: { submittedAt: true },
-      },
-    },
-  });
+  const loadData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/staff/periods", { cache: "no-store" });
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        throw new Error("Failed to fetch");
+      }
+      const data = await res.json();
+      setPeriods(data.periods);
+    } catch (error) {
+      console.error("Failed to load periods:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  // 画面表示のたびに最新データを取得
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading) {
+    return <div className="text-center py-8">読み込み中...</div>;
+  }
 
   const openPeriods = periods.filter((p) => p.isOpen);
   const publishedPeriods = periods.filter((p) => p.publishedAt);
@@ -44,19 +73,23 @@ export default async function StaffPeriodsPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {format(period.startDate, "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
-                      {format(period.endDate, "yyyy/MM/dd (E)", { locale: ja })}
+                      {format(parseISO(period.startDate), "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
+                      {format(parseISO(period.endDate), "yyyy/MM/dd (E)", { locale: ja })}
                     </p>
                     {period.deadlineAt && (
                       <p className="text-sm text-gray-500">
-                        締切: {format(period.deadlineAt, "MM/dd (E) HH:mm", { locale: ja })}
+                        締切: {format(parseISO(period.deadlineAt), "MM/dd (E) HH:mm", { locale: ja })}
                       </p>
                     )}
                     <p className="text-sm mt-1">
                       {isSubmitted ? (
-                        <span className="text-green-600">提出済み</span>
+                        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full">
+                          提出完了
+                        </span>
                       ) : (
-                        <span className="text-orange-600">未提出</span>
+                        <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 font-bold rounded-full">
+                          未提出
+                        </span>
                       )}
                     </p>
                   </div>
@@ -85,11 +118,11 @@ export default async function StaffPeriodsPage() {
               >
                 <div>
                   <p className="font-medium">
-                    {format(period.startDate, "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
-                    {format(period.endDate, "yyyy/MM/dd (E)", { locale: ja })}
+                    {format(parseISO(period.startDate), "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
+                    {format(parseISO(period.endDate), "yyyy/MM/dd (E)", { locale: ja })}
                   </p>
                   <p className="text-sm text-gray-500">
-                    公開日: {format(period.publishedAt!, "MM/dd (E) HH:mm", { locale: ja })}
+                    公開日: {format(parseISO(period.publishedAt!), "MM/dd (E) HH:mm", { locale: ja })}
                   </p>
                 </div>
                 <Link
@@ -114,8 +147,8 @@ export default async function StaffPeriodsPage() {
             {otherPeriods.map((period) => (
               <div key={period.id} className="card opacity-60">
                 <p className="font-medium">
-                  {format(period.startDate, "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
-                  {format(period.endDate, "yyyy/MM/dd (E)", { locale: ja })}
+                  {format(parseISO(period.startDate), "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
+                  {format(parseISO(period.endDate), "yyyy/MM/dd (E)", { locale: ja })}
                 </p>
                 <p className="text-sm text-gray-500">受付終了</p>
               </div>
