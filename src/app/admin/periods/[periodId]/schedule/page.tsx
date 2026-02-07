@@ -960,15 +960,23 @@ export default function AdminSchedulePage() {
       )}
 
       {/* Staff schedule modal */}
-      {viewStaffId && (() => {
+      {viewStaffId && period && (() => {
         const viewStaff = staff.find((s) => s.id === viewStaffId);
         if (!viewStaff) return null;
 
-        const staffAssignments = assignments
+        const assignmentMap = new Map<string, Assignment>();
+        assignments
           .filter((a) => a.staffUserId === viewStaffId)
-          .sort((a, b) => a.date.localeCompare(b.date));
+          .forEach((a) => assignmentMap.set(format(parseISO(a.date), "yyyy-MM-dd"), a));
 
-        const totalWorkMin = staffAssignments.reduce((sum, a) => {
+        const allDays = eachDayOfInterval({
+          start: parseISO(period.startDate),
+          end: parseISO(period.endDate),
+        });
+
+        const workDays = allDays.filter((d) => assignmentMap.has(format(d, "yyyy-MM-dd")));
+        const totalWorkMin = workDays.reduce((sum, d) => {
+          const a = assignmentMap.get(format(d, "yyyy-MM-dd"))!;
           return sum + (a.endMin - a.startMin - (a.breakMin || 0));
         }, 0);
         const totalHours = Math.floor(totalWorkMin / 60);
@@ -994,59 +1002,73 @@ export default function AdminSchedulePage() {
               </div>
 
               <div className="p-4 overflow-y-auto flex-1">
-                {staffAssignments.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">シフトはまだありません</p>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-gray-500">
-                        <th className="pb-2">日付</th>
-                        <th className="pb-2">時間</th>
-                        <th className="pb-2">実働</th>
-                        <th className="pb-2">休憩</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {staffAssignments.map((a) => {
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-gray-500">
+                      <th className="pb-2">日付</th>
+                      <th className="pb-2">時間</th>
+                      <th className="pb-2">実働</th>
+                      <th className="pb-2">休憩</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allDays.map((day) => {
+                      const dateKey = format(day, "yyyy-MM-dd");
+                      const a = assignmentMap.get(dateKey);
+                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                      const isToday = dateKey === selectedDate;
+
+                      if (a) {
                         const workMin = a.endMin - a.startMin - (a.breakMin || 0);
                         const wH = Math.floor(workMin / 60);
                         const wM = workMin % 60;
-                        const dateObj = parseISO(a.date);
-                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-
                         return (
                           <tr
-                            key={a.id}
-                            className={`border-b hover:bg-gray-50 cursor-pointer ${
-                              format(dateObj, "yyyy-MM-dd") === selectedDate ? "bg-blue-50" : ""
+                            key={dateKey}
+                            className={`border-b cursor-pointer hover:bg-blue-50 ${
+                              isToday ? "bg-blue-50" : "bg-green-50"
                             }`}
-                            onClick={() => {
-                              setSelectedDate(format(dateObj, "yyyy-MM-dd"));
-                              setViewStaffId(null);
-                            }}
+                            onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
                           >
-                            <td className={`py-2 ${isWeekend ? "text-red-600" : ""}`}>
-                              {format(dateObj, "M/d(E)", { locale: ja })}
+                            <td className={`py-1.5 font-medium ${isWeekend ? "text-red-600" : ""}`}>
+                              {format(day, "M/d(E)", { locale: ja })}
                             </td>
-                            <td className="py-2">
+                            <td className="py-1.5 font-medium">
                               {minToTimeStr(a.startMin)}-{minToTimeStr(a.endMin)}
                             </td>
-                            <td className="py-2">{wH}:{wM.toString().padStart(2, "0")}</td>
-                            <td className="py-2 text-red-500">
+                            <td className="py-1.5">{wH}:{wM.toString().padStart(2, "0")}</td>
+                            <td className="py-1.5 text-red-500">
                               {a.breakMin ? `${a.breakMin}分` : "-"}
                             </td>
                           </tr>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+                      } else {
+                        return (
+                          <tr
+                            key={dateKey}
+                            className={`border-b cursor-pointer hover:bg-gray-100 ${
+                              isToday ? "bg-blue-50" : ""
+                            }`}
+                            onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
+                          >
+                            <td className={`py-1.5 ${isWeekend ? "text-red-400" : "text-gray-400"}`}>
+                              {format(day, "M/d(E)", { locale: ja })}
+                            </td>
+                            <td colSpan={3} className="py-1.5 text-gray-400">
+                              休み
+                            </td>
+                          </tr>
+                        );
+                      }
+                    })}
+                  </tbody>
+                </table>
               </div>
 
               <div className="p-4 border-t bg-gray-50 rounded-b-lg">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>出勤日数: {staffAssignments.length}日</span>
-                  <span>合計実働: {totalHours}時間{totalMins > 0 ? `${totalMins}分` : ""}</span>
+                  <span>出勤 <span className="text-green-600">{workDays.length}日</span> / 休み <span className="text-gray-500">{allDays.length - workDays.length}日</span></span>
+                  <span>合計 {totalHours}時間{totalMins > 0 ? `${totalMins}分` : ""}</span>
                 </div>
               </div>
             </div>
