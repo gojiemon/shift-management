@@ -322,7 +322,7 @@ export default function AdminSchedulePage() {
   };
 
   // Handle end (mouse up and touch end)
-  const handleEnd = async () => {
+  const handleEnd = () => {
     if (!dragMode || !selectedDate || dragStartMin === null || dragEndMin === null) {
       resetDrag();
       return;
@@ -336,65 +336,90 @@ export default function AdminSchedulePage() {
       return;
     }
 
-    try {
-      if (dragMode === "create" && dragStaffId) {
-        const res = await fetch("/api/assignments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            periodId,
-            staffUserId: dragStaffId,
-            date: selectedDate,
-            startMin,
-            endMin,
-          }),
-        });
+    // 値をキャプチャしてからドラッグ状態を即座にリセット
+    const mode = dragMode;
+    const staffId = dragStaffId;
+    const assignmentId = dragAssignmentId;
+    const breakStart = dragBreakStartMin;
 
-        if (res.ok) {
-          const { assignment } = await res.json();
-          setAssignments((prev) => [...prev, assignment]);
-        } else {
-          const data = await res.json();
-          alert(data.error || "シフトの作成に失敗しました");
-        }
-      } else if ((dragMode === "move" || dragMode === "resize-start" || dragMode === "resize-end") && dragAssignmentId) {
-        const res = await fetch(`/api/assignments/${dragAssignmentId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startMin, endMin }),
-        });
+    // ドラッグ状態を即リセット（マウス移動に反応しなくなる）
+    resetDrag();
 
-        if (res.ok) {
-          const { assignment } = await res.json();
-          setAssignments((prev) =>
-            prev.map((a) => (a.id === assignment.id ? assignment : a))
-          );
-        } else {
-          const data = await res.json();
-          alert(data.error || "シフトの更新に失敗しました");
-        }
-      } else if (dragMode === "break-move" && dragAssignmentId && dragBreakStartMin !== null) {
-        const res = await fetch(`/api/assignments/${dragAssignmentId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ breakStartMin: dragBreakStartMin }),
-        });
-
-        if (res.ok) {
-          const { assignment } = await res.json();
-          setAssignments((prev) =>
-            prev.map((a) => (a.id === assignment.id ? assignment : a))
-          );
-        } else {
-          const data = await res.json();
-          alert(data.error || "休憩位置の更新に失敗しました");
-        }
-      }
-    } catch (error) {
-      console.error("Failed to save assignment:", error);
+    // 移動/リサイズの場合、UIを先に更新（楽観的更新）
+    if ((mode === "move" || mode === "resize-start" || mode === "resize-end") && assignmentId) {
+      setAssignments((prev) =>
+        prev.map((a) => (a.id === assignmentId ? { ...a, startMin, endMin } : a))
+      );
+    } else if (mode === "break-move" && assignmentId && breakStart !== null) {
+      setAssignments((prev) =>
+        prev.map((a) => (a.id === assignmentId ? { ...a, breakStartMin: breakStart } : a))
+      );
     }
 
-    resetDrag();
+    // バックグラウンドでAPI保存
+    (async () => {
+      try {
+        if (mode === "create" && staffId) {
+          const res = await fetch("/api/assignments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              periodId,
+              staffUserId: staffId,
+              date: selectedDate,
+              startMin,
+              endMin,
+            }),
+          });
+
+          if (res.ok) {
+            const { assignment } = await res.json();
+            setAssignments((prev) => [...prev, assignment]);
+          } else {
+            const data = await res.json();
+            alert(data.error || "シフトの作成に失敗しました");
+          }
+        } else if ((mode === "move" || mode === "resize-start" || mode === "resize-end") && assignmentId) {
+          const res = await fetch(`/api/assignments/${assignmentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ startMin, endMin }),
+          });
+
+          if (res.ok) {
+            const { assignment } = await res.json();
+            setAssignments((prev) =>
+              prev.map((a) => (a.id === assignmentId ? assignment : a))
+            );
+          } else {
+            const data = await res.json();
+            alert(data.error || "シフトの更新に失敗しました");
+            // 失敗時はデータを再読み込み
+            loadData();
+          }
+        } else if (mode === "break-move" && assignmentId && breakStart !== null) {
+          const res = await fetch(`/api/assignments/${assignmentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ breakStartMin: breakStart }),
+          });
+
+          if (res.ok) {
+            const { assignment } = await res.json();
+            setAssignments((prev) =>
+              prev.map((a) => (a.id === assignmentId ? assignment : a))
+            );
+          } else {
+            const data = await res.json();
+            alert(data.error || "休憩位置の更新に失敗しました");
+            loadData();
+          }
+        }
+      } catch (error) {
+        console.error("Failed to save assignment:", error);
+        loadData();
+      }
+    })();
   };
 
   const resetDrag = () => {
