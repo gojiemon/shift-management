@@ -65,6 +65,9 @@ export default function AdminSchedulePage() {
   // Selected assignment for break editing
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
+  // Staff schedule modal
+  const [viewStaffId, setViewStaffId] = useState<string | null>(null);
+
   // Drag state
   const [dragMode, setDragMode] = useState<DragMode>(null);
   const [dragStaffId, setDragStaffId] = useState<string | null>(null);
@@ -601,7 +604,12 @@ export default function AdminSchedulePage() {
                   className={`border-b border-gray-200 px-3 flex items-center ${statusColor}`}
                   style={{ height: ROW_HEIGHT }}
                 >
-                  <span className="text-sm font-medium truncate w-24">{s.name}</span>
+                  <button
+                    className="text-sm font-medium truncate w-24 text-left hover:text-blue-600 hover:underline"
+                    onClick={() => setViewStaffId(s.id)}
+                  >
+                    {s.name}
+                  </button>
                 </div>
               );
             })}
@@ -950,6 +958,101 @@ export default function AdminSchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Staff schedule modal */}
+      {viewStaffId && (() => {
+        const viewStaff = staff.find((s) => s.id === viewStaffId);
+        if (!viewStaff) return null;
+
+        const staffAssignments = assignments
+          .filter((a) => a.staffUserId === viewStaffId)
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        const totalWorkMin = staffAssignments.reduce((sum, a) => {
+          return sum + (a.endMin - a.startMin - (a.breakMin || 0));
+        }, 0);
+        const totalHours = Math.floor(totalWorkMin / 60);
+        const totalMins = totalWorkMin % 60;
+
+        return (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setViewStaffId(null)}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-lg font-bold">{viewStaff.name} のシフト一覧</h2>
+                <button
+                  onClick={() => setViewStaffId(null)}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-4 overflow-y-auto flex-1">
+                {staffAssignments.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">シフトはまだありません</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-gray-500">
+                        <th className="pb-2">日付</th>
+                        <th className="pb-2">時間</th>
+                        <th className="pb-2">実働</th>
+                        <th className="pb-2">休憩</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {staffAssignments.map((a) => {
+                        const workMin = a.endMin - a.startMin - (a.breakMin || 0);
+                        const wH = Math.floor(workMin / 60);
+                        const wM = workMin % 60;
+                        const dateObj = parseISO(a.date);
+                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+
+                        return (
+                          <tr
+                            key={a.id}
+                            className={`border-b hover:bg-gray-50 cursor-pointer ${
+                              format(dateObj, "yyyy-MM-dd") === selectedDate ? "bg-blue-50" : ""
+                            }`}
+                            onClick={() => {
+                              setSelectedDate(format(dateObj, "yyyy-MM-dd"));
+                              setViewStaffId(null);
+                            }}
+                          >
+                            <td className={`py-2 ${isWeekend ? "text-red-600" : ""}`}>
+                              {format(dateObj, "M/d(E)", { locale: ja })}
+                            </td>
+                            <td className="py-2">
+                              {minToTimeStr(a.startMin)}-{minToTimeStr(a.endMin)}
+                            </td>
+                            <td className="py-2">{wH}:{wM.toString().padStart(2, "0")}</td>
+                            <td className="py-2 text-red-500">
+                              {a.breakMin ? `${a.breakMin}分` : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="p-4 border-t bg-gray-50 rounded-b-lg">
+                <div className="flex justify-between text-sm font-medium">
+                  <span>出勤日数: {staffAssignments.length}日</span>
+                  <span>合計実働: {totalHours}時間{totalMins > 0 ? `${totalMins}分` : ""}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
