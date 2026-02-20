@@ -99,14 +99,14 @@ export default function AdminPrintDailyPage() {
     assignmentsByDate.get(dateKey)!.push(a);
   }
 
-  // Calculate bar position (percentage)
+  // Calculate bar position (percentage) - 13列(10~22時)に合わせて780分で計算
+  const totalMinutes = HOURS.length * 60; // 13 * 60 = 780
+
   const minToPercent = (min: number) => {
-    const totalMinutes = BUSINESS_END_MIN - BUSINESS_START_MIN + 90; // 10:00-22:00 = 720min
     return ((min - BUSINESS_START_MIN) / totalMinutes) * 100;
   };
 
   const minToWidth = (duration: number) => {
-    const totalMinutes = BUSINESS_END_MIN - BUSINESS_START_MIN + 90;
     return (duration / totalMinutes) * 100;
   };
 
