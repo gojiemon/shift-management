@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { minToTimeStr, BUSINESS_START_MIN, BUSINESS_END_MIN } from "@/lib/constants";
+import { isWeekendOrHoliday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -146,7 +147,7 @@ export default function AdminPrintDailyPage() {
           const dateKey = format(day, "yyyy-MM-dd");
           const dayAssignments = assignmentsByDate.get(dateKey) || [];
           const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][day.getDay()];
-          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const isWeekend = isWeekendOrHoliday(day);
 
           // Skip days with no assignments
           if (dayAssignments.length === 0) return null;

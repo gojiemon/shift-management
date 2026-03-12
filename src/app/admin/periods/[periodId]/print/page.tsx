@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { minToTimeStr, DAY_OF_WEEK_LABELS } from "@/lib/constants";
+import { isWeekendOrHoliday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -132,7 +133,7 @@ export default function AdminPrintPage() {
                   スタッフ
                 </th>
                 {days.map((day) => {
-                  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                  const isWeekend = isWeekendOrHoliday(day);
                   const isSunday = day.getDay() === 0;
                   const isSaturday = day.getDay() === 6;
                   return (

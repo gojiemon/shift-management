@@ -10,6 +10,7 @@ import {
   BUSINESS_START_MIN,
   BUSINESS_END_MIN,
 } from "@/lib/constants";
+import { isWeekendOrHoliday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -555,7 +556,7 @@ export default function AdminSchedulePage() {
           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">日付:</span>
           {days.map((day) => {
             const dateKey = format(day, "yyyy-MM-dd");
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+            const isWeekend = isWeekendOrHoliday(day);
             const isSelected = selectedDate === dateKey;
             const dayAssignCount = assignments.filter(
               (a) => format(parseISO(a.date), "yyyy-MM-dd") === dateKey
@@ -1015,7 +1016,7 @@ export default function AdminSchedulePage() {
                     {allDays.map((day) => {
                       const dateKey = format(day, "yyyy-MM-dd");
                       const a = assignmentMap.get(dateKey);
-                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                      const isWeekend = isWeekendOrHoliday(day);
                       const isToday = dateKey === selectedDate;
 
                       if (a) {

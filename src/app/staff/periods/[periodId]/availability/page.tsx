@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import TimeSelect from "@/components/TimeSelect";
+import { isWeekendOrHoliday } from "@/lib/holidays";
 import {
   AVAILABILITY_STATUS_LABELS,
   EARLY_SHIFT_TEMPLATES,
@@ -285,7 +286,7 @@ export default function AvailabilityPage() {
           <div className="space-y-1 max-h-96 overflow-y-auto">
             {days.map((day) => {
               const date = parseISO(day.date);
-              const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+              const isWeekend = isWeekendOrHoliday(date);
               const statusLabel = AVAILABILITY_STATUS_LABELS[day.status];
               const timeLabel =
                 day.status !== "UNAVAILABLE" && day.startMin && day.endMin
