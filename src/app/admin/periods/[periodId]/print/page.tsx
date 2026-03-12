@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { minToTimeStr, DAY_OF_WEEK_LABELS } from "@/lib/constants";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { isWeekendOrHoliday, isJapaneseHoliday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -133,21 +133,20 @@ export default function AdminPrintPage() {
                   スタッフ
                 </th>
                 {days.map((day) => {
-                  const isWeekend = isWeekendOrHoliday(day);
-                  const isSunday = day.getDay() === 0;
+                  const isHolidayOrSunday = day.getDay() === 0 || isJapaneseHoliday(day);
                   const isSaturday = day.getDay() === 6;
                   return (
                     <th
                       key={day.toISOString()}
                       className={`border border-gray-400 px-0.5 py-0.5 text-center min-w-[40px] ${
-                        isSunday
+                        isHolidayOrSunday
                           ? "bg-red-100"
                           : isSaturday
                             ? "bg-blue-50"
                             : "bg-gray-100"
                       }`}
                     >
-                      <span className={`text-xs ${isWeekend ? (isSunday ? "text-red-600" : "text-blue-600") : ""}`}>
+                      <span className={`text-xs ${isHolidayOrSunday ? "text-red-600" : isSaturday ? "text-blue-600" : ""}`}>
                         {format(day, "d")}{DAY_OF_WEEK_LABELS[day.getDay()]}
                       </span>
                     </th>
