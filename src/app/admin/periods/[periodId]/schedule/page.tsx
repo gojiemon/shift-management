@@ -10,7 +10,7 @@ import {
   BUSINESS_START_MIN,
   BUSINESS_END_MIN,
 } from "@/lib/constants";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { isWeekendOrHoliday, getDayColorClass, isSaturday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -556,8 +556,8 @@ export default function AdminSchedulePage() {
           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">日付:</span>
           {days.map((day) => {
             const dateKey = format(day, "yyyy-MM-dd");
-            const isWeekend = isWeekendOrHoliday(day);
             const isSelected = selectedDate === dateKey;
+            const isSat = isSaturday(day);
             const dayAssignCount = assignments.filter(
               (a) => format(parseISO(a.date), "yyyy-MM-dd") === dateKey
             ).length;
@@ -569,8 +569,10 @@ export default function AdminSchedulePage() {
                 className={`px-3 py-2 rounded-md text-sm whitespace-nowrap transition-colors ${
                   isSelected
                     ? "bg-blue-600 text-white"
-                    : isWeekend
-                      ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : isWeekendOrHoliday(day)
+                      ? isSat
+                        ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        : "bg-red-50 text-red-600 hover:bg-red-100"
                       : "bg-gray-100 hover:bg-gray-200"
                 }`}
               >
@@ -1016,7 +1018,6 @@ export default function AdminSchedulePage() {
                     {allDays.map((day) => {
                       const dateKey = format(day, "yyyy-MM-dd");
                       const a = assignmentMap.get(dateKey);
-                      const isWeekend = isWeekendOrHoliday(day);
                       const isToday = dateKey === selectedDate;
 
                       if (a) {
@@ -1031,7 +1032,7 @@ export default function AdminSchedulePage() {
                             }`}
                             onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
                           >
-                            <td className={`py-1.5 font-medium ${isWeekend ? "text-red-600" : ""}`}>
+                            <td className={`py-1.5 font-medium ${getDayColorClass(day)}`}>
                               {format(day, "M/d(E)", { locale: ja })}
                             </td>
                             <td className="py-1.5 font-medium">
@@ -1052,7 +1053,7 @@ export default function AdminSchedulePage() {
                             }`}
                             onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
                           >
-                            <td className={`py-1.5 ${isWeekend ? "text-red-400" : "text-gray-400"}`}>
+                            <td className={`py-1.5 ${getDayColorClass(day, true)}`}>
                               {format(day, "M/d(E)", { locale: ja })}
                             </td>
                             <td colSpan={3} className="py-1.5 text-gray-400">

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { minToTimeStr, DAY_OF_WEEK_LABELS } from "@/lib/constants";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { isWeekendOrHoliday, getDayColorClass, isSundayOrHoliday } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -99,17 +99,17 @@ export default function StaffSchedulePage() {
           {days.map((day) => {
             const dateKey = format(day, "yyyy-MM-dd");
             const assignment = assignmentMap.get(dateKey);
-            const isWeekend = isWeekendOrHoliday(day);
             const dayLabel = DAY_OF_WEEK_LABELS[day.getDay()];
+            const isSunHol = isSundayOrHoliday(day);
 
             return (
               <div
                 key={dateKey}
                 className={`flex items-center justify-between py-2 px-3 rounded-md ${
-                  isWeekend ? "bg-red-50" : "bg-gray-50"
+                  isSunHol ? "bg-red-50" : "bg-gray-50"
                 }`}
               >
-                <span className={isWeekend ? "text-red-600" : ""}>
+                <span className={getDayColorClass(day)}>
                   {format(day, "M/d")} ({dayLabel})
                 </span>
                 <span className="font-medium">

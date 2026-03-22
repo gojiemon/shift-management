@@ -49,3 +49,28 @@ export function isWeekendOrHoliday(date: Date): boolean {
   const dow = date.getDay();
   return dow === 0 || dow === 6 || isJapaneseHoliday(date);
 }
+
+/**
+ * 日曜日または祝日かどうか（赤色表示用）
+ */
+export function isSundayOrHoliday(date: Date): boolean {
+  return date.getDay() === 0 || isJapaneseHoliday(date);
+}
+
+/**
+ * 土曜日かどうか（青色表示用）
+ */
+export function isSaturday(date: Date): boolean {
+  return date.getDay() === 6;
+}
+
+/**
+ * 曜日・祝日に応じたテキストカラークラスを返す
+ * 日曜・祝日→赤、土曜→青、平日→空文字
+ */
+export function getDayColorClass(date: Date, muted = false): string {
+  const shade = muted ? "400" : "600";
+  if (isSundayOrHoliday(date)) return `text-red-${shade}`;
+  if (isSaturday(date)) return `text-blue-${shade}`;
+  return muted ? "text-gray-400" : "";
+}

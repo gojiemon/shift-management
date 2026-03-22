@@ -10,7 +10,7 @@ import {
   minToTimeStr,
   DAY_OF_WEEK_LABELS,
 } from "@/lib/constants";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { isWeekendOrHoliday, getDayColorClass } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -169,13 +169,10 @@ export default function AdminAvailabilityPage() {
             <tr className="border-b">
               <th className="text-left py-2 px-2 sticky left-0 bg-white">スタッフ</th>
               {days.map((day) => {
-                const isWeekend = isWeekendOrHoliday(day);
                 return (
                   <th
                     key={day.toISOString()}
-                    className={`text-center py-2 px-1 min-w-[60px] ${
-                      isWeekend ? "text-red-600" : ""
-                    }`}
+                    className={`text-center py-2 px-1 min-w-[60px] ${getDayColorClass(day)}`}
                   >
                     <div>{format(day, "M/d")}</div>
                     <div className="text-xs">{DAY_OF_WEEK_LABELS[day.getDay()]}</div>

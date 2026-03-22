@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { minToTimeStr, BUSINESS_START_MIN, BUSINESS_END_MIN } from "@/lib/constants";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { isWeekendOrHoliday, getDayColorClass } from "@/lib/holidays";
 
 interface Period {
   id: string;
@@ -147,7 +147,6 @@ export default function AdminPrintDailyPage() {
           const dateKey = format(day, "yyyy-MM-dd");
           const dayAssignments = assignmentsByDate.get(dateKey) || [];
           const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][day.getDay()];
-          const isWeekend = isWeekendOrHoliday(day);
 
           // Skip days with no assignments
           if (dayAssignments.length === 0) return null;
@@ -158,7 +157,7 @@ export default function AdminPrintDailyPage() {
           return (
             <div key={dateKey} className="mb-3 daily-table">
               {/* Date header */}
-              <h2 className={`text-sm font-bold mb-1 ${isWeekend ? "text-red-600" : ""}`}>
+              <h2 className={`text-sm font-bold mb-1 ${getDayColorClass(day)}`}>
                 {format(day, "yyyy年M月d日", { locale: ja })}（{dayOfWeek}）シフト表
               </h2>
 

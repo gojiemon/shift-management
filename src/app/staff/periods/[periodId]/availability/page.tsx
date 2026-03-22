@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import TimeSelect from "@/components/TimeSelect";
-import { isWeekendOrHoliday } from "@/lib/holidays";
+import { getDayColorClass } from "@/lib/holidays";
 import {
   AVAILABILITY_STATUS_LABELS,
   EARLY_SHIFT_TEMPLATES,
@@ -155,7 +155,7 @@ export default function AvailabilityPage() {
     });
   };
 
-  const saveAvailability = async () => {
+  const saveAvailability = async (): Promise<boolean> => {
     setSaving(true);
     setError("");
 
@@ -180,8 +180,10 @@ export default function AvailabilityPage() {
         const data = await res.json();
         throw new Error(data.error || "保存に失敗しました");
       }
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存に失敗しました");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -191,8 +193,8 @@ export default function AvailabilityPage() {
   const [successType, setSuccessType] = useState<"submit" | "update">("submit");
 
   const submitAvailability = async () => {
-    await saveAvailability();
-    if (error) return;
+    const saved = await saveAvailability();
+    if (!saved) return;
 
     try {
       const res = await fetch("/api/submissions", {
@@ -286,7 +288,6 @@ export default function AvailabilityPage() {
           <div className="space-y-1 max-h-96 overflow-y-auto">
             {days.map((day) => {
               const date = parseISO(day.date);
-              const isWeekend = isWeekendOrHoliday(date);
               const statusLabel = AVAILABILITY_STATUS_LABELS[day.status];
               const timeLabel =
                 day.status !== "UNAVAILABLE" && day.startMin && day.endMin
@@ -301,7 +302,7 @@ export default function AvailabilityPage() {
                     selectedDay === day.date
                       ? "bg-blue-100 border-blue-500"
                       : "hover:bg-gray-100"
-                  } ${isWeekend ? "text-red-600" : ""}`}
+                  } ${getDayColorClass(date)}`}
                 >
                   <div className="flex justify-between items-center">
                     <span>
