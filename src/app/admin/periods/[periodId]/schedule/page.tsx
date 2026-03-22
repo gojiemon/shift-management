@@ -46,8 +46,8 @@ interface Assignment {
 const SLOT_INTERVAL = 15;
 const SLOT_WIDTH = 15;
 const ROW_HEIGHT = 44;
-// 営業時間10:00-20:30に合わせて10時〜21時を表示
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 10);
+// 営業時間10:00-21:00に合わせて10時〜21時を表示
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 10);
 const HOUR_WIDTH = SLOT_WIDTH * 4;
 
 type DragMode = "create" | "move" | "resize-start" | "resize-end" | "break-move" | null;

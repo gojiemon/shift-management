@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Validate time range
     if (parsed.data.startMin < BUSINESS_START_MIN || parsed.data.endMin > BUSINESS_END_MIN) {
       return NextResponse.json(
-        { error: "営業時間外は設定できません（10:00〜20:30）" },
+        { error: "営業時間外は設定できません（10:00〜21:00）" },
         { status: 400 }
       );
     }

@@ -1,6 +1,6 @@
-// 営業時間 (分単位: 10:00 = 600, 20:30 = 1230)
+// 営業時間 (分単位: 10:00 = 600, 21:00 = 1260)
 export const BUSINESS_START_MIN = 600; // 10:00
-export const BUSINESS_END_MIN = 1230; // 20:30
+export const BUSINESS_END_MIN = 1260; // 21:00
 export const TIME_SLOT_INTERVAL = 30; // 30分刻み
 
 // 時間を分に変換
@@ -40,9 +40,9 @@ export const EARLY_SHIFT_TEMPLATES = [
 
 // 遅番テンプレート
 export const LATE_SHIFT_TEMPLATES = [
-  { label: "16:00-20:30", startMin: 960, endMin: 1230 },
-  { label: "17:00-20:30", startMin: 1020, endMin: 1230 },
-  { label: "18:00-20:30", startMin: 1080, endMin: 1230 },
+  { label: "16:00-21:00", startMin: 960, endMin: 1260 },
+  { label: "17:00-21:00", startMin: 1020, endMin: 1260 },
+  { label: "18:00-21:00", startMin: 1080, endMin: 1260 },
 ];
 
 // フリーテンプレート

@@ -48,7 +48,7 @@ function validateTimeRange(
   }
 
   if (startMin < BUSINESS_START_MIN || endMin > BUSINESS_END_MIN) {
-    return "営業時間外は選択できません（10:00〜20:30）";
+    return "営業時間外は選択できません（10:00〜21:00）";
   }
 
   if (startMin >= endMin) {

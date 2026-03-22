@@ -33,6 +33,8 @@ export default function AdminPrintPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStart, setFilterStart] = useState<string>("");
+  const [filterEnd, setFilterEnd] = useState<string>("");
 
   const loadData = useCallback(async () => {
     try {
@@ -79,9 +81,15 @@ export default function AdminPrintPage() {
     return <div className="text-center py-8 text-red-600">期間が見つかりません</div>;
   }
 
+  const periodStart = parseISO(period.startDate);
+  const periodEnd = parseISO(period.endDate);
+
+  const rangeStart = filterStart ? parseISO(filterStart) : periodStart;
+  const rangeEnd = filterEnd ? parseISO(filterEnd) : periodEnd;
+
   const days = eachDayOfInterval({
-    start: parseISO(period.startDate),
-    end: parseISO(period.endDate),
+    start: rangeStart < periodStart ? periodStart : rangeStart,
+    end: rangeEnd > periodEnd ? periodEnd : rangeEnd,
   });
 
   // Create assignment map: staffId -> date -> assignment
@@ -97,17 +105,47 @@ export default function AdminPrintPage() {
   return (
     <div>
       {/* Print button (hidden in print) */}
-      <div className="no-print mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">印刷プレビュー</h1>
-          <p className="text-gray-600">
-            {format(parseISO(period.startDate), "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
-            {format(parseISO(period.endDate), "MM/dd (E)", { locale: ja })}
-          </p>
+      <div className="no-print mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">印刷プレビュー</h1>
+            <p className="text-gray-600">
+              {format(parseISO(period.startDate), "yyyy/MM/dd (E)", { locale: ja })} 〜{" "}
+              {format(parseISO(period.endDate), "MM/dd (E)", { locale: ja })}
+            </p>
+          </div>
+          <button onClick={handlePrint} className="btn btn-primary">
+            印刷
+          </button>
         </div>
-        <button onClick={handlePrint} className="btn btn-primary">
-          印刷
-        </button>
+        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+          <span className="text-sm font-medium text-gray-700">表示期間:</span>
+          <input
+            type="date"
+            value={filterStart || format(periodStart, "yyyy-MM-dd")}
+            min={format(periodStart, "yyyy-MM-dd")}
+            max={format(periodEnd, "yyyy-MM-dd")}
+            onChange={(e) => setFilterStart(e.target.value)}
+            className="border rounded px-2 py-1 text-sm"
+          />
+          <span className="text-gray-500">〜</span>
+          <input
+            type="date"
+            value={filterEnd || format(periodEnd, "yyyy-MM-dd")}
+            min={format(periodStart, "yyyy-MM-dd")}
+            max={format(periodEnd, "yyyy-MM-dd")}
+            onChange={(e) => setFilterEnd(e.target.value)}
+            className="border rounded px-2 py-1 text-sm"
+          />
+          {(filterStart || filterEnd) && (
+            <button
+              onClick={() => { setFilterStart(""); setFilterEnd(""); }}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              リセット
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Print content */}
@@ -116,8 +154,8 @@ export default function AdminPrintPage() {
         <div className="text-center mb-2 print-break-inside-avoid">
           <h1 className="text-lg font-bold">シフト表</h1>
           <p className="text-sm">
-            {format(parseISO(period.startDate), "yyyy年M月d日", { locale: ja })} 〜{" "}
-            {format(parseISO(period.endDate), "M月d日", { locale: ja })}
+            {format(days[0], "yyyy年M月d日", { locale: ja })} 〜{" "}
+            {format(days[days.length - 1], "M月d日", { locale: ja })}
           </p>
           <p className="text-xs text-gray-600">
             作成日: {format(new Date(), "yyyy年M月d日", { locale: ja })}
@@ -197,7 +235,7 @@ export default function AdminPrintPage() {
 
         {/* Footer */}
         <div className="mt-1 text-xs text-gray-600 print-break-inside-avoid">
-          <p>営業時間: 10:00〜20:30</p>
+          <p>営業時間: 10:00〜21:00</p>
         </div>
       </div>
 
