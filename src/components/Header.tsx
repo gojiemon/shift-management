@@ -33,6 +33,9 @@ export default function Header({ userName, userRole }: HeaderProps) {
                 <Link href="/admin/staff" className="text-gray-600 hover:text-gray-900">
                   スタッフ管理
                 </Link>
+                <Link href="/admin/paid-leave" className="text-gray-600 hover:text-gray-900">
+                  有給管理
+                </Link>
               </>
             ) : (
               <>
@@ -41,6 +44,9 @@ export default function Header({ userName, userRole }: HeaderProps) {
                 </Link>
                 <Link href="/staff/settings" className="text-gray-600 hover:text-gray-900">
                   設定
+                </Link>
+                <Link href="/staff/paid-leave" className="text-gray-600 hover:text-gray-900">
+                  有給
                 </Link>
               </>
             )}
