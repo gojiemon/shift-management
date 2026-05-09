@@ -69,6 +69,11 @@ export default function AdminSchedulePage() {
   // Staff schedule modal
   const [viewStaffId, setViewStaffId] = useState<string | null>(null);
 
+  // Previous period data (for showing the assignment flow continuation in the staff modal)
+  const [prevPeriod, setPrevPeriod] = useState<Period | null>(null);
+  const [prevAssignments, setPrevAssignments] = useState<Assignment[]>([]);
+  const [prevAvailabilities, setPrevAvailabilities] = useState<Availability[]>([]);
+
   // Drag state
   const [dragMode, setDragMode] = useState<DragMode>(null);
   const [dragStaffId, setDragStaffId] = useState<string | null>(null);
@@ -123,6 +128,57 @@ export default function AdminSchedulePage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Load the immediately preceding period's data so the staff modal can show
+  // the assignment flow continuously across two periods.
+  useEffect(() => {
+    if (!period) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/periods");
+        if (!res.ok || cancelled) return;
+        const { periods } = (await res.json()) as { periods: Period[] };
+
+        const currentStart = parseISO(period.startDate).getTime();
+        const earlier = periods
+          .filter((p) => p.id !== period.id && parseISO(p.endDate).getTime() < currentStart)
+          .sort(
+            (a, b) => parseISO(b.endDate).getTime() - parseISO(a.endDate).getTime()
+          );
+        const prev = earlier[0] ?? null;
+        if (cancelled) return;
+        setPrevPeriod(prev);
+
+        if (!prev) {
+          setPrevAssignments([]);
+          setPrevAvailabilities([]);
+          return;
+        }
+
+        const [assignRes, availRes] = await Promise.all([
+          fetch(`/api/assignments?periodId=${prev.id}`),
+          fetch(`/api/availability?periodId=${prev.id}`),
+        ]);
+        if (cancelled) return;
+        if (assignRes.ok) {
+          const { assignments: prevA } = await assignRes.json();
+          if (!cancelled) setPrevAssignments(prevA);
+        }
+        if (availRes.ok) {
+          const { availabilities: prevAv } = await availRes.json();
+          if (!cancelled) setPrevAvailabilities(prevAv);
+        }
+      } catch (err) {
+        console.error("Failed to load previous period data:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [period]);
 
   // Convert pixel position to minutes (15分単位)
   const pixelToMin = (px: number): number => {
@@ -967,23 +1023,107 @@ export default function AdminSchedulePage() {
         const viewStaff = staff.find((s) => s.id === viewStaffId);
         if (!viewStaff) return null;
 
-        const assignmentMap = new Map<string, Assignment>();
-        assignments
-          .filter((a) => a.staffUserId === viewStaffId)
-          .forEach((a) => assignmentMap.set(format(parseISO(a.date), "yyyy-MM-dd"), a));
+        // 希望日数: AVAILABLE + FREE のみカウント（PREFER_OFF / UNAVAILABLE は除外）
+        const countDesired = (avails: Availability[]) =>
+          avails.filter(
+            (a) =>
+              a.staffUserId === viewStaffId &&
+              (a.status === "AVAILABLE" || a.status === "FREE")
+          ).length;
 
-        const allDays = eachDayOfInterval({
-          start: parseISO(period.startDate),
-          end: parseISO(period.endDate),
-        });
+        const buildSummary = (
+          periodToSummarize: Period,
+          assignmentSource: Assignment[],
+          availabilitySource: Availability[]
+        ) => {
+          const map = new Map<string, Assignment>();
+          assignmentSource
+            .filter((a) => a.staffUserId === viewStaffId)
+            .forEach((a) => map.set(format(parseISO(a.date), "yyyy-MM-dd"), a));
 
-        const workDays = allDays.filter((d) => assignmentMap.has(format(d, "yyyy-MM-dd")));
-        const totalWorkMin = workDays.reduce((sum, d) => {
-          const a = assignmentMap.get(format(d, "yyyy-MM-dd"))!;
-          return sum + (a.endMin - a.startMin - (a.breakMin || 0));
-        }, 0);
-        const totalHours = Math.floor(totalWorkMin / 60);
-        const totalMins = totalWorkMin % 60;
+          const days = eachDayOfInterval({
+            start: parseISO(periodToSummarize.startDate),
+            end: parseISO(periodToSummarize.endDate),
+          });
+          const workDays = days.filter((d) => map.has(format(d, "yyyy-MM-dd")));
+          const totalWorkMin = workDays.reduce((sum, d) => {
+            const a = map.get(format(d, "yyyy-MM-dd"))!;
+            return sum + (a.endMin - a.startMin - (a.breakMin || 0));
+          }, 0);
+          const desired = countDesired(availabilitySource);
+
+          return { map, days, workDays, totalWorkMin, desired };
+        };
+
+        const current = buildSummary(period, assignments, availabilities);
+        const prev = prevPeriod
+          ? buildSummary(prevPeriod, prevAssignments, prevAvailabilities)
+          : null;
+
+        const totalHours = Math.floor(current.totalWorkMin / 60);
+        const totalMins = current.totalWorkMin % 60;
+
+        const renderDayRow = (
+          day: Date,
+          map: Map<string, Assignment>,
+          opts: { clickable: boolean; muted?: boolean }
+        ) => {
+          const dateKey = format(day, "yyyy-MM-dd");
+          const a = map.get(dateKey);
+          const isToday = opts.clickable && dateKey === selectedDate;
+          const baseRow = opts.clickable ? "cursor-pointer" : "cursor-default";
+          const mutedTint = opts.muted ? "opacity-70" : "";
+          const onClick = opts.clickable
+            ? () => {
+                setSelectedDate(dateKey);
+                setViewStaffId(null);
+              }
+            : undefined;
+
+          if (a) {
+            const workMin = a.endMin - a.startMin - (a.breakMin || 0);
+            const wH = Math.floor(workMin / 60);
+            const wM = workMin % 60;
+            const bg = isToday ? "bg-blue-50" : opts.muted ? "bg-green-50/50" : "bg-green-50";
+            const hover = opts.clickable ? "hover:bg-blue-50" : "";
+            return (
+              <tr
+                key={dateKey}
+                className={`border-b ${baseRow} ${hover} ${bg} ${mutedTint}`}
+                onClick={onClick}
+              >
+                <td className={`py-1.5 font-medium ${getDayColorClass(day)}`}>
+                  {format(day, "M/d(E)", { locale: ja })}
+                </td>
+                <td className="py-1.5 font-medium">
+                  {minToTimeStr(a.startMin)}-{minToTimeStr(a.endMin)}
+                </td>
+                <td className="py-1.5">
+                  {wH}:{wM.toString().padStart(2, "0")}
+                </td>
+                <td className="py-1.5 text-red-500">
+                  {a.breakMin ? `${a.breakMin}分` : "-"}
+                </td>
+              </tr>
+            );
+          }
+
+          const hover = opts.clickable ? "hover:bg-gray-100" : "";
+          return (
+            <tr
+              key={dateKey}
+              className={`border-b ${baseRow} ${hover} ${isToday ? "bg-blue-50" : ""} ${mutedTint}`}
+              onClick={onClick}
+            >
+              <td className={`py-1.5 ${getDayColorClass(day, true)}`}>
+                {format(day, "M/d(E)", { locale: ja })}
+              </td>
+              <td colSpan={3} className="py-1.5 text-gray-400">
+                休み
+              </td>
+            </tr>
+          );
+        };
 
         return (
           <div
@@ -1015,62 +1155,63 @@ export default function AdminSchedulePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allDays.map((day) => {
-                      const dateKey = format(day, "yyyy-MM-dd");
-                      const a = assignmentMap.get(dateKey);
-                      const isToday = dateKey === selectedDate;
-
-                      if (a) {
-                        const workMin = a.endMin - a.startMin - (a.breakMin || 0);
-                        const wH = Math.floor(workMin / 60);
-                        const wM = workMin % 60;
-                        return (
-                          <tr
-                            key={dateKey}
-                            className={`border-b cursor-pointer hover:bg-blue-50 ${
-                              isToday ? "bg-blue-50" : "bg-green-50"
-                            }`}
-                            onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
+                    {prev && prevPeriod && (
+                      <>
+                        <tr className="bg-gray-100">
+                          <td
+                            colSpan={4}
+                            className="py-1.5 text-xs text-gray-500 text-center font-medium tracking-wider"
                           >
-                            <td className={`py-1.5 font-medium ${getDayColorClass(day)}`}>
-                              {format(day, "M/d(E)", { locale: ja })}
-                            </td>
-                            <td className="py-1.5 font-medium">
-                              {minToTimeStr(a.startMin)}-{minToTimeStr(a.endMin)}
-                            </td>
-                            <td className="py-1.5">{wH}:{wM.toString().padStart(2, "0")}</td>
-                            <td className="py-1.5 text-red-500">
-                              {a.breakMin ? `${a.breakMin}分` : "-"}
-                            </td>
-                          </tr>
-                        );
-                      } else {
-                        return (
-                          <tr
-                            key={dateKey}
-                            className={`border-b cursor-pointer hover:bg-gray-100 ${
-                              isToday ? "bg-blue-50" : ""
-                            }`}
-                            onClick={() => { setSelectedDate(dateKey); setViewStaffId(null); }}
+                            ── 前回（
+                            {format(parseISO(prevPeriod.startDate), "M/d", { locale: ja })}
+                            〜{format(parseISO(prevPeriod.endDate), "M/d", { locale: ja })}
+                            ）──
+                          </td>
+                        </tr>
+                        {prev.days.map((day) =>
+                          renderDayRow(day, prev.map, { clickable: false, muted: true })
+                        )}
+                        <tr className="bg-blue-100">
+                          <td
+                            colSpan={4}
+                            className="py-1.5 text-xs text-blue-700 text-center font-semibold tracking-wider"
                           >
-                            <td className={`py-1.5 ${getDayColorClass(day, true)}`}>
-                              {format(day, "M/d(E)", { locale: ja })}
-                            </td>
-                            <td colSpan={3} className="py-1.5 text-gray-400">
-                              休み
-                            </td>
-                          </tr>
-                        );
-                      }
-                    })}
+                            ── 今回（
+                            {format(parseISO(period.startDate), "M/d", { locale: ja })}
+                            〜{format(parseISO(period.endDate), "M/d", { locale: ja })}
+                            ）──
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                    {current.days.map((day) =>
+                      renderDayRow(day, current.map, { clickable: true })
+                    )}
                   </tbody>
                 </table>
               </div>
 
-              <div className="p-4 border-t bg-gray-50 rounded-b-lg">
+              <div className="p-4 border-t bg-gray-50 rounded-b-lg space-y-1.5">
+                {prev && (
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>
+                      前回: 希望 {prev.desired}日 / 実シフト {prev.workDays.length}日 / 休み{" "}
+                      {prev.days.length - prev.workDays.length}日
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm font-medium">
-                  <span>出勤 <span className="text-green-600">{workDays.length}日</span> / 休み <span className="text-gray-500">{allDays.length - workDays.length}日</span></span>
-                  <span>合計 {totalHours}時間{totalMins > 0 ? `${totalMins}分` : ""}</span>
+                  <span>
+                    今回: 希望{" "}
+                    <span className="text-blue-600">{current.desired}日</span> / 実シフト{" "}
+                    <span className="text-green-600">{current.workDays.length}日</span> / 休み{" "}
+                    <span className="text-gray-500">
+                      {current.days.length - current.workDays.length}日
+                    </span>
+                  </span>
+                  <span>
+                    合計 {totalHours}時間{totalMins > 0 ? `${totalMins}分` : ""}
+                  </span>
                 </div>
               </div>
             </div>
